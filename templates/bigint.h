@@ -261,18 +261,18 @@ private:
     }
     stringstream stream;
     if (sign) stream << "-";
-    BigInt one(1), billion(1000000000);
-    stringify(one, billion, stream);
+    BigInt one(1), quintillion(1000000000000000000LL);
+    stringify(one, quintillion, stream);
     decimal = stream.str();
     return decimal;
   }
 
-  BigInt stringify(const BigInt &base, const BigInt &billion, stringstream &stream) {
+  BigInt stringify(const BigInt &base, const BigInt &quintillion, stringstream &stream) {
     if (cmp(*this, base, false)) return *this;
-    BigInt rem = stringify(base * billion, billion, stream);
+    BigInt rem = stringify(base * quintillion, quintillion, stream);
     PBB qr = div(rem, base);
-    stream << (int) qr.first;
-    stream.width(9);
+    stream << (long long) qr.first;
+    stream.width(18);
     stream.fill('0');
     return qr.second;
   }
@@ -283,11 +283,11 @@ private:
       sign = true;
       ++s;
     }
-    BigInt billion(1000000000);
+    BigInt quintillion(1000000000000000000LL);
     int len;
     for (len = 0; '0' <= s[len] && s[len] <= '9'; ++len) ;
-    int chunk_count = len / 9, extra = len % 9;
-    int chunk = 0, i;
+    int chunk_count = len / 18, extra = len % 18, i;
+    long long chunk = 0;
 
     while (extra--) {
       chunk = chunk * 10 + (*(s++) - '0');
@@ -296,10 +296,10 @@ private:
 
     while (chunk_count--) {
       chunk = 0;
-      for (i = 9; i; --i) {
+      for (i = 18; i; --i) {
         chunk = chunk * 10 + (*(s++) - '0');
       }
-      *this *= billion;
+      *this *= quintillion;
       *this += chunk;
     }
   }
