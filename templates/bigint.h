@@ -208,10 +208,10 @@ public:
   const BigInt operator++(int) { BigInt result(*this); ++*this; return result; }
   const BigInt & operator--() { return *this -= 1; return *this; }
   const BigInt operator--(int) { BigInt result(*this); --*this; return result; }
-  const operator bool() const { return bits.size(); }
-  const operator int() const { return to_int(); }
-  const operator long long() const { return to_long_long(); }
-  const operator string() { return to_string(); }
+  operator bool() const { return bits.size(); }
+  operator int() const { return to_int(); }
+  operator long long() const { return to_long_long(); }
+  operator string() { return to_string(); }
   string str() { return to_string(); }
 
   friend ostream & operator<<(ostream &os, BigInt n) {
