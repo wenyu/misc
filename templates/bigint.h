@@ -5,6 +5,7 @@
 #define __BIGINT_H__
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -175,6 +176,15 @@ public:
     return *this;
   }
 
+  const BigInt & operator~() {
+    for (register int i = 0; i < bits.size(); ++i) {
+      bits[i] = ~bits[i];
+    }
+
+    compress();
+    return *this;
+  }
+
   BigInt(const char *s) { from_c_str(s); }
   BigInt(string s) { from_c_str(s.c_str()); }
   const bool operator==(const BigInt &rhs) const { return equ(*this, rhs); }
@@ -188,9 +198,17 @@ public:
   const BigInt operator*(const BigInt &rhs) const { BigInt result(*this); return result *= rhs; }
   const BigInt operator/(const BigInt &rhs) const { return divide(rhs).first; }
   const BigInt operator%(const BigInt &rhs) const { return divide(rhs).second; }
+  const BigInt operator&(const BigInt &rhs) const { BigInt result(*this); return result &= rhs; }
+  const BigInt operator|(const BigInt &rhs) const { BigInt result(*this); return result |= rhs; }
+  const BigInt operator^(const BigInt &rhs) const { BigInt result(*this); return result ^= rhs; }
   const BigInt operator>>(const int rhs) const { BigInt result(*this); return result >>= rhs; }
   const BigInt operator<<(const int rhs) const { BigInt result(*this); return result <<= rhs; }
   const BigInt operator-() const { BigInt result(*this); result.sign = !sign; return result; }
+  const BigInt & operator++() { *this += 1; return *this; }
+  const BigInt operator++(int) { BigInt result(*this); ++*this; return result; }
+  const BigInt & operator--() { return *this -= 1; return *this; }
+  const BigInt operator--(int) { BigInt result(*this); --*this; return result; }
+  const operator bool() const { return bits.size(); }
   const operator int() const { return to_int(); }
   const operator long long() const { return to_long_long(); }
   const operator string() { return to_string(); }
@@ -241,29 +259,48 @@ private:
       decimal = "0";
       return decimal;
     }
-    decimal = sign ? "-" : "";
-    BigInt one(1), ten(10);
-    stringify(one, ten);
+    stringstream stream;
+    if (sign) stream << "-";
+    BigInt one(1), billion(1000000000);
+    stringify(one, billion, stream);
+    decimal = stream.str();
     return decimal;
   }
 
-  BigInt stringify(const BigInt & base, const BigInt & ten) {
+  BigInt stringify(const BigInt &base, const BigInt &billion, stringstream &stream) {
     if (cmp(*this, base, false)) return *this;
-    BigInt rem = stringify(base * ten, ten);
+    BigInt rem = stringify(base * billion, billion, stream);
     PBB qr = div(rem, base);
-    decimal += '0' + (int) qr.first;
+    stream << (int) qr.first;
+    stream.width(9);
+    stream.fill('0');
     return qr.second;
   }
 
   void from_c_str(const char *s) {
     bits.clear();
-    sign = (s[0] == '-');
-    BigInt ten(10);
-    for (; *s; ++s) {
-      if ('0' <= *s && *s <= '9') {
-        *this *= ten;
-        *this += BigInt(*s - '0');
+    if (*s == '-') {
+      sign = true;
+      ++s;
+    }
+    BigInt billion(1000000000);
+    int len;
+    for (len = 0; '0' <= s[len] && s[len] <= '9'; ++len) ;
+    int chunk_count = len / 9, extra = len % 9;
+    int chunk = 0, i;
+
+    while (extra--) {
+      chunk = chunk * 10 + (*(s++) - '0');
+    }
+    *this = chunk;
+
+    while (chunk_count--) {
+      chunk = 0;
+      for (i = 9; i; --i) {
+        chunk = chunk * 10 + (*(s++) - '0');
       }
+      *this *= billion;
+      *this += chunk;
     }
   }
 
