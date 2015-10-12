@@ -1,18 +1,22 @@
-#include <iostream>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <cassert>
 #include <algorithm>
-#include <vector>
-#include <set>
-#include <utility>
-#include <string>
-#include <queue>
-#include <map>
 #include <bitset>
+#include <cassert>
 #include <climits>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace std;
 
 #ifdef _DEBUG_MODE_
 #define db(X) { cerr << "* DEBUG [L" << __LINE__ << "]: " << #X << " = " << X << endl; }
@@ -36,7 +40,6 @@
 
 template <typename T> void xchg(T &a, T &b) { T c=a; a=b; b=c; }
 
-using namespace std;
 typedef long long ll;
 typedef unsigned long long ull;
 typedef unsigned int uint;
