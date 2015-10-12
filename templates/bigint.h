@@ -449,6 +449,7 @@ private:
   }
 };
 
+#undef PBU32
 #undef PBB
 
 #endif // __BIGINT_H__
