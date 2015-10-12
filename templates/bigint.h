@@ -276,19 +276,22 @@ private:
     }
     stringstream stream;
     if (sign) stream << "-";
-    stringify(*this, stream);
+    BINARY groups;
+    groups.clear();
+    PBU32 qr = make_pair(*this, 0u);
+    while (qr.first) {
+      qr = div32(qr.first, 1000000000);
+      groups.push_back(qr.second);
+    }
+    stream << groups.back();
+    stream.width(9);
+    stream.fill('0');
+    while (!groups.empty()) {
+      stream << groups.back();
+      groups.pop_back();
+    }
     decimal = stream.str();
     return decimal;
-  }
-
-  void stringify(const BigInt &n, stringstream &stream) {
-    PBU32 qr = div32(n, 1000000000);
-    if (qr.first) {
-      stringify(qr.first, stream);
-      stream.width(9);
-      stream.fill('0');
-    }
-    stream << qr.second;
   }
 
   void from_c_str(const char *s) {
