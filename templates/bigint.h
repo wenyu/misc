@@ -4,6 +4,8 @@
 #ifndef __BIGINT_H__
 #define __BIGINT_H__
 
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -12,13 +14,8 @@
 
 using namespace std;
 
-#define MAX(A,B) ( ((A) < (B)) ? (B) : (A) )
-#define MIN(A,B) ( ((A) < (B)) ? (A) : (B) )
-#define UINT32 unsigned int
-#define UINT64 unsigned long long
 #define PBB pair<BigInt, BigInt>
-#define PAIR(A, B) make_pair((A), (B))
-#define BINARY vector<UINT32>
+typedef vector<uint_fast32_t> BINARY;
 
 class BigInt {
 public:
@@ -28,7 +25,19 @@ public:
     dirty = true;
   }
 
-  BigInt(long long v) {
+  BigInt(int_fast32_t v) {
+    bits.resize(1);
+    if (v < 0) {
+      v = -v;
+      sign = true;
+    } else {
+      sign = false;
+    }
+    bits[0] = v;
+    compress();
+  }
+
+  BigInt(int_fast64_t v) {
     bits.resize(2);
     if (v < 0) {
       v = -v;
@@ -36,7 +45,7 @@ public:
     } else {
       sign = false;
     }
-    bits[0] = v & 0xFFFFFFFF;
+    bits[0] = v;
     bits[1] = v >> 32;
     compress();
   }
@@ -110,7 +119,7 @@ public:
     int i, j;
 
     for (i = 0, j = drop; j + 1 < bits.size(); ++i, ++j) {
-      bits[i] = (bits[j] >> shift_down) | ((UINT64) bits[j + 1] << shift_up);
+      bits[i] = (bits[j] >> shift_down) | ((uint_fast64_t) bits[j + 1] << shift_up);
     }
     bits[i] = bits[j] >> shift_down;
 
@@ -130,7 +139,7 @@ public:
     int i, j;
 
     for (i = bits.size() - 1, j = i - pad; j > 0; --i, --j) {
-      bits[i] = (bits[j] << shift_up) | ((UINT64) bits[j - 1] >> shift_down);
+      bits[i] = (bits[j] << shift_up) | ((uint_fast64_t) bits[j - 1] >> shift_down);
     }
 
     bits[i--] = bits[j] << shift_up;
@@ -144,7 +153,7 @@ public:
   }
 
   const BigInt & operator&=(const BigInt &rhs) {
-    bits.resize(MIN(bits.size(), rhs.bits.size()));
+    bits.resize(min(bits.size(), rhs.bits.size()));
 
     for (register int i = 0; i < bits.size(); ++i) {
       bits[i] &= rhs.bits[i];
@@ -155,7 +164,7 @@ public:
   }
 
   const BigInt & operator|=(const BigInt &rhs) {
-    bits.resize(MAX(bits.size(), rhs.bits.size()));
+    bits.resize(max(bits.size(), rhs.bits.size()));
 
     for (register int i = 0; i < bits.size(); ++i) {
       bits[i] |= rhs.bits[i];
@@ -166,7 +175,7 @@ public:
   }
 
   const BigInt & operator^=(const BigInt &rhs) {
-    bits.resize(MAX(bits.size(), rhs.bits.size()));
+    bits.resize(max(bits.size(), rhs.bits.size()));
 
     for (register int i = 0; i < bits.size(); ++i) {
       bits[i] ^= rhs.bits[i];
@@ -208,10 +217,10 @@ public:
   const BigInt operator++(int) { BigInt result(*this); ++*this; return result; }
   const BigInt & operator--() { return *this -= 1; return *this; }
   const BigInt operator--(int) { BigInt result(*this); --*this; return result; }
-  const operator bool() const { return bits.size(); }
-  const operator int() const { return to_int(); }
-  const operator long long() const { return to_long_long(); }
-  const operator string() { return to_string(); }
+  operator bool() const { return bits.size(); }
+  operator int() const { return to_int(); }
+  operator long long() const { return to_long_long(); }
+  operator string() { return to_string(); }
   string str() { return to_string(); }
 
   friend ostream & operator<<(ostream &os, BigInt n) {
@@ -252,7 +261,7 @@ private:
   long long to_long_long() const {
     long long r = 0;
     if (bits.size() >= 1) r = bits[0];
-    if (bits.size() >= 2) r |= ((UINT64) bits[1]) << 32;
+    if (bits.size() >= 2) r |= ((uint_fast64_t) bits[1]) << 32;
     if (sign) r = -r;
     return r;
   }
@@ -315,16 +324,16 @@ private:
 
   inline static const BINARY _add(const BINARY &a, const BINARY &b) {
     register int i = 0;
-    UINT64 c = 0;
+    uint_fast64_t c = 0;
     BINARY r(a);
 
     for (; i < b.size(); ++i, c >>= 32) {
-      c += (UINT64) a[i] + b[i];
+      c += (uint_fast64_t) a[i] + b[i];
       r[i] = c;
     }
 
     for (; c && i < a.size(); ++i, c >>= 32) {
-      c += (UINT64) a[i];
+      c += (uint_fast64_t) a[i];
       r[i] = c;
     }
 
@@ -335,31 +344,31 @@ private:
 
   static const BINARY sub(const BINARY &a, const BINARY &b) {
     register int i = 0;
-    UINT64 c = 1;
+    uint_fast64_t c = 1;
     BINARY r(a);
 
     for (; i < b.size(); ++i, c >>= 32) {
-      c += (UINT64) a[i] + (0xFFFFFFFF ^ b[i]);
+      c += (uint_fast64_t) a[i] + (0xFFFFFFFF ^ b[i]);
       r[i] = c;
     }
 
     for (; c != 1 && i < r.size(); ++i, c >>= 32) {
-      c += (UINT64) a[i] + 0xFFFFFFFF;
+      c += (uint_fast64_t) a[i] + 0xFFFFFFFF;
       r[i] = c;
     }
 
     return r;
   }
 
-  static const BINARY mul(const BINARY &a, UINT32 m, int shift = 0) {
+  static const BINARY mul(const BINARY &a, uint_fast32_t m, int shift = 0) {
     if (!m) return BINARY();
     register int i = 0;
-    UINT64 c = 0;
+    uint_fast64_t c = 0;
     BINARY r(shift, 0);
     r.reserve(shift + a.size() + 1);
 
     for (i = 0; i < a.size(); ++i, c >>= 32) {
-      c += (UINT64) a[i] * m;
+      c += (uint_fast64_t) a[i] * m;
       r.push_back(c);
     }
 
@@ -390,7 +399,7 @@ private:
   static PBB div(BigInt r, BigInt d) {
     if (!d.bits.size()) throw -1;
     r.sign = false; d.sign = false;
-    if (r < d) return PAIR(BigInt(), r);
+    if (r < d) return make_pair(BigInt(), r);
     int bits_required = r.log2() - d.log2();
     BigInt b(1), q;
     b <<= bits_required;
@@ -401,18 +410,18 @@ private:
         q |= b;
         r -= d;
       }
-      int to_shift = MAX(1, d.log2() - r.log2());
+      int to_shift = max(1, d.log2() - r.log2());
       b >>= to_shift;
       d >>= to_shift;
       bits_required -= to_shift;
     }
 
-    return PAIR(q, r);
+    return make_pair(q, r);
   }
 
-  static int highest_bit(UINT32 n) {
+  static int highest_bit(uint_fast32_t n) {
     int r = 0, b = 1 << 4, t;
-    UINT32 c;
+    uint_fast32_t c;
 
     while (b) {
       t = b | r;
@@ -425,12 +434,6 @@ private:
   }
 };
 
-#undef MAX
-#undef MIN
-#undef UINT32
-#undef UINT64
 #undef PBB
-#undef PAIR
-#undef BINARY
 
 #endif // __BIGINT_H__
