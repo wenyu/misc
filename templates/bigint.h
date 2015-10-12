@@ -15,6 +15,7 @@
 using namespace std;
 
 #define PBB pair<BigInt, BigInt>
+#define PBU32 pair<BigInt, uint_fast32_t>
 typedef vector<uint_fast32_t> BINARY;
 
 class BigInt {
@@ -275,20 +276,19 @@ private:
     }
     stringstream stream;
     if (sign) stream << "-";
-    BigInt one(1), quintillion(1000000000000000000LL);
-    stringify(one, quintillion, stream);
+    stringify(*this, stream);
     decimal = stream.str();
     return decimal;
   }
 
-  BigInt stringify(const BigInt &base, const BigInt &quintillion, stringstream &stream) {
-    if (cmp(*this, base, false)) return *this;
-    BigInt rem = stringify(base * quintillion, quintillion, stream);
-    PBB qr = div(rem, base);
-    stream << (long long) qr.first;
-    stream.width(18);
-    stream.fill('0');
-    return qr.second;
+  void stringify(const BigInt &n, stringstream &stream) {
+    PBU32 qr = div32(n, 1000000000);
+    if (qr.first) {
+      stringify(qr.first, stream);
+      stream.width(9);
+      stream.fill('0');
+    }
+    stream << qr.second;
   }
 
   void from_c_str(const char *s) {
@@ -398,6 +398,10 @@ private:
 
   static PBB div(BigInt r, BigInt d) {
     if (!d.bits.size()) throw -1;
+    if (d.bits.size() == 1) {
+      PBU32 t = div32(r, d.bits[0]);
+      return make_pair(t.first, BigInt((int_fast64_t) t.second));
+    }
     r.sign = false; d.sign = false;
     if (r < d) return make_pair(BigInt(), r);
     int bits_required = r.log2() - d.log2();
@@ -416,6 +420,17 @@ private:
       bits_required -= to_shift;
     }
 
+    return make_pair(q, r);
+  }
+
+  static PBU32 div32(BigInt q, uint_fast32_t d) {
+    uint_fast64_t r = 0;
+    for (int i = q.bits.size() - 1; i >= 0; --i) {
+      r = (r << 32) + q.bits[i];
+      q.bits[i] = r / d;
+      r %= d;
+    }
+    q.compress();
     return make_pair(q, r);
   }
 
