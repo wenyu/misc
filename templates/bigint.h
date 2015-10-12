@@ -208,10 +208,10 @@ public:
   const BigInt operator++(int) { BigInt result(*this); ++*this; return result; }
   const BigInt & operator--() { return *this -= 1; return *this; }
   const BigInt operator--(int) { BigInt result(*this); --*this; return result; }
-  operator bool() const { return bits.size(); }
-  operator int() const { return to_int(); }
-  operator long long() const { return to_long_long(); }
-  operator string() { return to_string(); }
+  const operator bool() const { return bits.size(); }
+  const operator int() const { return to_int(); }
+  const operator long long() const { return to_long_long(); }
+  const operator string() { return to_string(); }
   string str() { return to_string(); }
 
   friend ostream & operator<<(ostream &os, BigInt n) {
@@ -224,6 +224,11 @@ public:
     is >> s;
     n = s;
     return is;
+  }
+
+  int log2() const {
+    if (!bits.size()) return 0;
+    return ((bits.size() - 1) << 5) + highest_bit(bits.back());
   }
 
 private:
@@ -386,21 +391,37 @@ private:
     if (!d.bits.size()) throw -1;
     r.sign = false; d.sign = false;
     if (r < d) return PAIR(BigInt(), r);
-    int bits_required = (r.bits.size() - d.bits.size() + 1) << 5;
+    int bits_required = r.log2() - d.log2();
     BigInt b(1), q;
     b <<= bits_required;
     d <<= bits_required;
 
-    while (bits_required-- >= 0 && r.bits.size() > 0) {
+    while (bits_required >= 0 && r.bits.size() > 0) {
       if (d <= r) {
         q |= b;
         r -= d;
       }
-      b >>= 1;
-      d >>= 1;
+      int to_shift = MAX(1, d.log2() - r.log2());
+      b >>= to_shift;
+      d >>= to_shift;
+      bits_required -= to_shift;
     }
 
     return PAIR(q, r);
+  }
+
+  static int highest_bit(UINT32 n) {
+    int r = 0, b = 1 << 4, t;
+    UINT32 c;
+
+    while (b) {
+      t = b | r;
+      c = 1 << t;
+      if (c <= n) r = t;
+      b >>= 1;
+    }
+
+    return r;
   }
 };
 
