@@ -26,18 +26,6 @@ public:
     dirty = true;
   }
 
-  BigInt(int_fast32_t v) {
-    bits.resize(1);
-    if (v < 0) {
-      v = -v;
-      sign = true;
-    } else {
-      sign = false;
-    }
-    bits[0] = v;
-    compress();
-  }
-
   BigInt(int_fast64_t v) {
     bits.resize(2);
     if (v < 0) {
@@ -283,13 +271,14 @@ private:
       qr = div32(qr.first, 1000000000);
       groups.push_back(qr.second);
     }
-    stream << groups.back();
-    stream.width(9);
-    stream.fill('0');
+
     while (!groups.empty()) {
       stream << groups.back();
+      stream.width(9);
+      stream.fill('0');
       groups.pop_back();
     }
+
     decimal = stream.str();
     return decimal;
   }
