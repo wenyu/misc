@@ -381,7 +381,7 @@ private:
 
   static bool cmp(const BigInt &a, const BigInt &b, bool check_sign = true) {
     if (check_sign && a.sign != b.sign) return a.sign;
-    if (a.bits.size() != b.bits.size()) return a.bits.size() < b.bits.size() ^ (a.sign && check_sign);
+    if (a.bits.size() != b.bits.size()) return (a.bits.size() < b.bits.size()) ^ (a.sign && check_sign);
     for (register int i = a.bits.size() - 1; i >= 0; --i) {
       if (a.bits[i] != b.bits[i]) return (a.bits[i] < b.bits[i]) ^ (a.sign && check_sign);
     }
