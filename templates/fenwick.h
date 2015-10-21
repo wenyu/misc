@@ -4,7 +4,7 @@
 #include <algorithm>
 
 // Zero-indexed Fenwick Tree
-template <typename T = int>
+template <typename T = long long>
 class Fenwick {
 public:
   Fenwick(int n, T zero = T(0LL)) {
