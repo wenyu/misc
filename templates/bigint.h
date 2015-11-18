@@ -229,6 +229,29 @@ public:
     return ((bits.size() - 1) << 5) + highest_bit(bits.back());
   }
 
+  PBB sqrt2() const {
+    if (sign) throw -2;
+    int bits_required = log2();
+    if (bits_required & 1) ++bits_required;
+    BigInt x(*this);
+    BigInt e = BigInt(1) << bits_required;
+    BigInt r;
+    while (e.bits.size()) {
+      BigInt t = r | e;
+      r >>= 1;
+      if (t <= x) {
+        x -= t;
+        r |= e;
+      }
+      e >>= 2;
+    }
+    return make_pair(r, x);
+  }
+
+  const BigInt sqrt() const {
+    return sqrt2().first;
+  }
+
 private:
   bool sign, dirty;
   BINARY bits;

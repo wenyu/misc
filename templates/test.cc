@@ -30,12 +30,33 @@ void test_fenwick() {
   assert_fenwick_range(fenwick, 0, 99999, T(4449984999));
 }
 
+void assert_sqrt(const BigInt& base, const BigInt &extra) {
+  BigInt square = base * base + extra;
+  pair<BigInt, BigInt> result = square.sqrt2();
+  cout << ((result.first == base && result.second == extra) ? "PASS" : "FAIL");
+  cout << ": sqrt2(" << square << ") = <" << result.first << ", " << result.second << ">, ";
+  cout << "expected <" << base << ", " << extra << ">." << endl;
+}
+
+void test_sqrt() {
+  assert_sqrt(BigInt(), BigInt());
+  assert_sqrt(BigInt(1), BigInt());
+  assert_sqrt(BigInt(2), BigInt());
+  assert_sqrt(BigInt(2), BigInt(1));
+  assert_sqrt(BigInt(2), BigInt(2));
+  assert_sqrt(BigInt(10), BigInt(2));
+  assert_sqrt(BigInt("31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679"), BigInt("27182818280618"));
+}
+
 int main() {
   cout << "Testing Fenwick<long long>" << endl;
   test_fenwick<long long>();
 
   cout << "Testing Fenwick<BigInt>" << endl;
   test_fenwick<BigInt>();
+
+  cout << "Testing BigInt::sqrt" << endl;
+  test_sqrt();
 
   return 0;
 }
