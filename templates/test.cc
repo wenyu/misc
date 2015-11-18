@@ -46,6 +46,11 @@ void test_sqrt() {
   assert_sqrt(BigInt(2), BigInt(2));
   assert_sqrt(BigInt(10), BigInt(2));
   assert_sqrt(BigInt("31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679"), BigInt("27182818280618"));
+  BigInt t;
+  for (int i = 1; i <= 999; ++i) {
+    t = (t * BigInt(1000)) + BigInt(i);
+  }
+  assert_sqrt(t, BigInt(1234));
 }
 
 int main() {
