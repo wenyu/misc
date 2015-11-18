@@ -14,10 +14,7 @@ public:
     std::fill_n(S, N, Z);
   }
 
-
-  ~Fenwick() {
-    delete [] S;
-  }
+  ~Fenwick() { delete [] S; }
 
   void add(int index, T delta) {
     if (!index) {
