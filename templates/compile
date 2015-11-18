@@ -1,0 +1,224 @@
+#!/usr/bin/python
+import os
+import sys
+import re
+import time
+
+# Exceptions
+class AbstractMethodError(RuntimeError):
+    pass
+class CompileError(RuntimeError):
+    pass
+class ExecutionError(RuntimeError):
+    pass
+
+# Helper functions
+def log(msg, header = '** '):
+    sys.stderr.write(header)
+    sys.stderr.writelines(msg)
+    sys.stderr.write('\n')
+
+def tryMatchSuffix(name, suffix):
+    # Foo. => Foo
+    while name[-1] == '.':
+        name = name[:-1]
+    # cc => .cc
+    if suffix[0] != '.':
+        suffix = '.' + suffix
+
+    possibleFilenames = []
+    # If name is already a file matching the suffix
+    if name[-len(suffix):] == suffix:
+        possibleFilenames.append(name)
+    possibleFilenames.append(name + suffix)
+
+    # Try find file
+    for filename in possibleFilenames:
+        if os.path.exists(filename):
+            return filename
+    return None
+
+def execSequence(commands):
+    for cmd in commands:
+        log('shell> ' + cmd)
+        if os.system(cmd + ' 1>&2'):
+            raise CompileError(cmd)
+
+def getBasename(name):
+    return os.path.splitext(name)[0]
+
+# PL Profiles
+class PL:
+    @staticmethod
+    def getBasename(name):
+        return os.path.splitext(name)[0]
+
+    @staticmethod
+    def accept(name):
+        raise AbstractMethodError()
+    def __init__(self, filename):
+        raise AbstractMethodError()
+    def compile(self):
+        raise AbstractMethodError()
+
+    def run(self):
+        try:
+            os.system(self.runCommand)
+        except AttributeError:
+            raise AbstractMethodError('Implement run() or provide runCommand')
+
+    def test(self):
+        testfile = getBasename(self.filename) + '.in'
+        if not os.path.exists(testfile):
+            raise ExecutionError('You must provide test file: ' + testfile)
+        try:
+            os.system(self.runCommand + ' < "' + testfile + '"')
+        except AttributeError:
+            raise AbstractMethodError('Implement test() or provide runCommand')
+
+class PL_C(PL):
+    @staticmethod
+    def accept(name):
+        return tryMatchSuffix(name, 'c')
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.basename = getBasename(filename)
+        self.destname = self.basename + '.exe'
+        self.runCommand = os.getcwd() + '/' + self.destname
+
+    def compile(self):
+        execSequence(["gcc -D_DEBUG_MODE_ -O2 -lm '%s' -g -o '%s'" % (self.filename, self.destname)])
+
+class PL_CPP(PL_C):
+    @staticmethod
+    def accept(name):
+        return (tryMatchSuffix(name, 'cc') or
+                tryMatchSuffix(name, 'cpp'))
+
+    def compile(self):
+        execSequence(["g++ -D_DEBUG_MODE_ -O2 '%s' -g -o '%s'" % (self.filename, self.destname)])
+
+class PL_CUDA(PL_C):
+    @staticmethod
+    def accept(name):
+        return tryMatchSuffix(name, 'cu')
+
+    def compile(self):
+        execSequence(["nvcc -D_DEBUG_MODE_ -O2 '%s' -o '%s'" % (self.filename, self.destname)])
+
+class PL_Java(PL):
+    @staticmethod
+    def accept(name):
+        return tryMatchSuffix(name, 'java')
+
+    def extractMainClassName(self):
+        matcher = re.compile('\\sclass\\s+([_$a-zA-Z0-9]+)')
+        try:
+            with open(self.filename, 'r') as source:
+                content = '\n' + source.read()
+            return matcher.findall(content)[0]
+        except IOError:
+            raise CompileError('IOError: Cannot read content.')
+        except IndexError:
+            raise CompileError('Cannot determine main class name.')
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.basename = self.extractMainClassName()
+        log('Found main Java class: ' + self.basename)
+        self.destname = self.basename + '.class'
+        self.runCommand = 'java ' + self.basename
+
+    def compile(self):
+        execSequence(["javac '%s'" % self.filename])
+
+class PL_Scala(PL):
+    @staticmethod
+    def accept(name):
+        return tryMatchSuffix(name, 'scala')
+
+    def extractMainClassName(self):
+        matcher = re.compile('\\sobject\\s+([_$a-zA-Z0-9]+)')
+        try:
+            with open(self.filename, 'r') as source:
+                content = '\n' + source.read()
+            return matcher.findall(content)[0]
+        except IOError:
+            raise CompileError('IOError: Cannot read content.')
+        except IndexError:
+            raise CompileError('Cannot determine main object name.')
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.basename = self.extractMainClassName()
+        log('Found main Scala object: ' + self.basename)
+        self.destname = self.basename + '.class'
+        self.runCommand = 'scala ' + self.basename
+
+    def compile(self):
+        execSequence(["scalac '%s'" % self.filename])
+
+## MAIN IMPLEMENTATION ##
+def printUsage():
+    print 'Usage: %s [-r|-t] <program_name>' % sys.argv[0]
+
+def main(args):
+    if len(args) == 0 or len(args) > 2:
+        printUsage()
+        return 1
+
+    prog = args.pop()
+    try:
+        opt = args.pop()
+        if opt not in ['-r', '-t']:
+            printUsage()
+            return 1
+    except IndexError:
+        opt = ''
+
+    profiles = [PL_C, PL_CPP, PL_CUDA, PL_Java, PL_Scala]
+    for profile in profiles:
+        filename = profile.accept(prog)
+        if filename is not None:
+            # Execution life cycle
+            log('Found file "%s", using PL profile "%s".' % (filename, profile.__name__))
+            runner = profile(filename)
+            try:
+                log('Compiling: %s' % filename)
+                runner.compile()
+                log('Build complete, target file: %s' % runner.destname)
+
+                # Run
+                if opt:
+                    log('===========================================================', '')
+                    log('>>>>>>>>>>>>>>>>>>>> EXECUTION STARTED <<<<<<<<<<<<<<<<<<<<', '')
+                    timeStart = time.time()
+                    try:
+                        if opt == '-r':
+                            runner.run()
+                        else:
+                            runner.test()
+                    except KeyboardInterrupt:
+                        log('!!!!!!!!!!!!!!!!!!!! KEYBOARD INTERRUPT !!!!!!!!!!!!!!!!!!!', '')
+                    timeEnd = time.time()
+                    log('>>>>>>>>>>>>>>>>>>>> EXECUTION STOPPED <<<<<<<<<<<<<<<<<<<<', '')
+                    log('| Elapsed time: %0.3f ms' % ((timeEnd - timeStart) * 1000), '')
+                    log('===========================================================', '')
+            except CompileError as e:
+                log('Your program "%s" doesn\'t compile.' % filename)
+                log('Error message: ' + e.message)
+                return 2
+            except ExecutionError as e:
+                log('!!!!!!!!!!!!!!!!!!!! EXECUTION CRASHED !!!!!!!!!!!!!!!!!!!!', '')
+                log('!! Error message: ' + e.message, '')
+                log('===========================================================', '')
+                return 3
+
+            return 0
+
+    log("No suitable PL profile.")
+    return 1
+
+if __name__ == '__main__':
+    exit(main(sys.argv[1:]))
