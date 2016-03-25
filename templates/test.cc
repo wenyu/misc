@@ -53,7 +53,16 @@ void test_sqrt() {
   assert_sqrt(t, BigInt(1234));
 }
 
+void assert_equals(const BigInt& a, const BigInt& b) {
+  cout << (a == b ? "PASS" : "FAIL") << ": a = " << a << ", b = " << b << endl;
+}
+
 int main() {
+  cout << "Testing BigInt" << endl;
+  assert_equals(BigInt(65536) * BigInt(65536), BigInt(string("4294967296")));
+  assert_equals(BigInt(4294967296L), BigInt(string("4294967296")));
+  assert_equals(BigInt(4294967295L), BigInt(string("4294967295")));
+
   cout << "Testing Fenwick<long long>" << endl;
   test_fenwick<long long>();
 
@@ -62,6 +71,5 @@ int main() {
 
   cout << "Testing BigInt::sqrt" << endl;
   test_sqrt();
-
   return 0;
 }

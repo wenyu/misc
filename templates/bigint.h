@@ -16,6 +16,7 @@ using namespace std;
 
 #define PBB pair<BigInt, BigInt>
 #define PBU32 pair<BigInt, uint_fast32_t>
+#define MAXU32 0xFFFFFFFF
 typedef vector<uint_fast32_t> BINARY;
 
 class BigInt {
@@ -34,7 +35,7 @@ public:
     } else {
       sign = false;
     }
-    bits[0] = v;
+    bits[0] = v & MAXU32;
     bits[1] = v >> 32;
     compress();
   }
@@ -108,9 +109,9 @@ public:
     int i, j;
 
     for (i = 0, j = drop; j + 1 < bits.size(); ++i, ++j) {
-      bits[i] = (bits[j] >> shift_down) | ((uint_fast64_t) bits[j + 1] << shift_up);
+      bits[i] = ((bits[j] >> shift_down) | ((uint_fast64_t) bits[j + 1] << shift_up)) & MAXU32;
     }
-    bits[i] = bits[j] >> shift_down;
+    bits[i] = (bits[j] >> shift_down) & MAXU32;
 
     bits.resize(bits.size() - drop);
     compress();
@@ -128,10 +129,10 @@ public:
     int i, j;
 
     for (i = bits.size() - 1, j = i - pad; j > 0; --i, --j) {
-      bits[i] = (bits[j] << shift_up) | ((uint_fast64_t) bits[j - 1] >> shift_down);
+      bits[i] = ((bits[j] << shift_up) | ((uint_fast64_t) bits[j - 1] >> shift_down)) & MAXU32;
     }
 
-    bits[i--] = bits[j] << shift_up;
+    bits[i--] = (bits[j] << shift_up) & MAXU32;
 
     while (i >= 0) {
       bits[i--] = 0;
@@ -183,7 +184,6 @@ public:
     return *this;
   }
 
-  BigInt(const char *s) { from_c_str(s); }
   BigInt(string s) { from_c_str(s.c_str()); }
   const bool operator==(const BigInt &rhs) const { return equ(*this, rhs); }
   const bool operator!=(const BigInt &rhs) const { return !equ(*this, rhs); }
@@ -344,12 +344,12 @@ private:
 
     for (; i < b.size(); ++i, c >>= 32) {
       c += (uint_fast64_t) a[i] + b[i];
-      r[i] = c;
+      r[i] = c & MAXU32;
     }
 
     for (; c && i < a.size(); ++i, c >>= 32) {
       c += (uint_fast64_t) a[i];
-      r[i] = c;
+      r[i] = c & MAXU32;
     }
 
     if (c) r.push_back(c);
@@ -363,13 +363,13 @@ private:
     BINARY r(a);
 
     for (; i < b.size(); ++i, c >>= 32) {
-      c += (uint_fast64_t) a[i] + (0xFFFFFFFF ^ b[i]);
-      r[i] = c;
+      c += (uint_fast64_t) a[i] + (MAXU32 ^ b[i]);
+      r[i] = c & MAXU32;
     }
 
     for (; c != 1 && i < r.size(); ++i, c >>= 32) {
-      c += (uint_fast64_t) a[i] + 0xFFFFFFFF;
-      r[i] = c;
+      c += (uint_fast64_t) a[i] + MAXU32;
+      r[i] = c & MAXU32;
     }
 
     return r;
@@ -384,11 +384,11 @@ private:
 
     for (i = 0; i < a.size(); ++i, c >>= 32) {
       c += (uint_fast64_t) a[i] * m;
-      r.push_back(c);
+      r.push_back(c & MAXU32);
     }
 
     for (; c; c >>= 32) {
-      r.push_back(c);
+      r.push_back(c & MAXU32);
     }
 
     return r;
