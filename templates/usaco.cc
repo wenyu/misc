@@ -11,7 +11,6 @@ TASK:
 #include <cassert>
 #include <climits>
 #include <cmath>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -59,7 +58,7 @@ int main() {
 
 #ifndef _DEBUG_MODE_
   freopen(TASK ".in", "r", stdin);
-  freopen(TASK ".out", "r", stdout);
+  freopen(TASK ".out", "w", stdout);
 #endif
   // COUNTER CODE STARTS HERE
   _main();
