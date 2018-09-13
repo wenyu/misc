@@ -23,7 +23,11 @@ public:
     seed += 2947340281;
     if (state & 4) {
       seed = ((seed & 0x5555555555555555L) << 1) |
-             ((seed & 0xAAAAAAAAAAAAAAAAL) >> 1);
+             ((seed >> 1) & 0x5555555555555555L);
+    }
+    if (state & 8) {
+      seed = ((seed & 0x3333333333333333L) << 2) |
+             ((seed >> 2) & 0x3333333333333333L);
     }
 
     return seed % upper_bound;
